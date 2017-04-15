@@ -1,0 +1,47 @@
+<html>
+<head>
+<title>Project2</title>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="http://d3js.org/topojson.v2.min.js"></script>
+</head>
+<body>
+  <svg id="map">
+  </svg>
+  <script>
+
+  var mapData;
+  var states;
+  var gunOwnership;
+  var statisticData;
+  var variables;
+
+
+    d3.queue()
+    .defer(d3.json, "us.json")
+    .await(function (error, rawMap) {
+      mapData = rawMap;
+      states = topojson.feature(rawMap, rawMap.objects.states);
+      showMap();
+      });
+
+      function showMap(){
+        var svg = d3.select("#map");
+        var projection = d3.geoAlbersUsa();
+        var pathGenerator = d3.geoPath().projection(projection);
+
+        projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
+        pathGenerator = d3.geoPath().projection(projection);
+        console.log(pathGenerator);
+        var paths = svg.selectAll("path.state").data(states.features);
+        paths.enter().append("path").attr("class", "state")
+        .merge(paths)
+        .style("fill", "black")
+        .attr("stroke", "#ccc")
+        .attr("stroke-width", 0.5)
+        .attr("d", function (state) {
+        return pathGenerator(state);
+      });
+      }
+  </script>
+</body>
+</html>
