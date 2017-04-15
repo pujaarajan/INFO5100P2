@@ -1,47 +1,123 @@
 <html>
 <head>
-<title>Project2</title>
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<script src="http://d3js.org/topojson.v2.min.js"></script>
+	<title>Project2</title>
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="http://d3js.org/topojson.v2.min.js"></script>
+
+	<style>
+
+		.arcs {
+			stroke-width: 0.5px;
+			stroke: tomato;
+			pointer-events: none;
+			fill: none;
+		}
+
+	</style>
+
 </head>
+
 <body>
-  <svg id="map" width="500" height="600">
-  </svg>
-  <script>
 
-  var mapData;
-  var states;
-  var gunOwnership;
-  var statisticData;
-  var variables;
+	<svg id="map" width="500" height="600"></svg>
 
+	<script>
 
-    d3.queue()
-    .defer(d3.json, "us.json")
-    .await(function (error, rawMap) {
-      mapData = rawMap;
-      states = topojson.feature(rawMap, rawMap.objects.states);
-      showMap();
-      });
+		var mapData;
+		var states;
+		var flightData;
 
-      function showMap(){
-        var svg = d3.select("#map");
-        var projection = d3.geoAlbersUsa();
-        var pathGenerator = d3.geoPath().projection(projection);
+		d3.queue()
+		.defer(d3.json, "us.json")
+		.defer(d3.csv, "DelayedFlightsTest2.csv")
+		.await(function (error, rawMap, rawFlights) {
+			mapData = rawMap;
+			flightData = rawFlights;
+			states = topojson.feature(rawMap, rawMap.objects.states);
+			showMap();
+		});
 
-        projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
-        pathGenerator = d3.geoPath().projection(projection);
-        console.log(pathGenerator);
-        var paths = svg.selectAll("path.state").data(states.features);
-        paths.enter().append("path").attr("class", "state")
-        .merge(paths)
-        .style("fill", "black")
-        .attr("stroke", "#ccc")
-        .attr("stroke-width", 0.5)
-        .attr("d", function (state) {
-        return pathGenerator(state);
-      });
-      }
-  </script>
+		function showMap(){
+
+			var svg = d3.select("#map");
+			projection = d3.geoAlbersUsa();
+			var pathGenerator = d3.geoPath().projection(projection);
+
+			projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
+			pathGenerator = d3.geoPath().projection(projection);
+
+			var paths = svg.selectAll("path.state").data(states.features);
+			paths.enter().append("path").attr("class", "state")
+			.merge(paths)
+			.style("fill", "white")
+			.attr("stroke", "#ccc")
+			.attr("stroke-width", 0.8)
+			.attr("d", function (state) {
+				return pathGenerator(state);
+			});
+
+			var arcs = svg.selectAll("path.arcs");
+
+			arcs.data(flightData)
+			.enter()
+			.append("path")
+			.style("opacity", "0")
+			.attr("id" , function(d,i){
+				return "line" + i;
+			})
+			.attr("class", "arcs")
+			.attr('d', function(d) {
+				return lngLatToArc(d, [Number(d.DLONGITUDE), Number(d.DLATITUDE)],[Number(d.OLONGITUDE), Number(d.OLATITUDE)], 5)
+			});
+			// d3.selectAll(".arcs").style("opacity", "0.5");
+
+			d3.selectAll(".arcs").each(function(d,i){
+
+				var totalLength = d3.select("#line" + i).node().getTotalLength();
+				console.log(totalLength)
+
+				d3.selectAll("#line" + i)
+				.attr("stroke-dasharray", totalLength + " " + totalLength)
+				.attr("stroke-dashoffset", 0)
+				.transition()
+				.duration(5000)
+				.delay(100*i)
+				.attr("stroke-dashoffset", totalLength)
+				.style("opacity", "0.5")
+			});
+
+		}
+
+		function lngLatToArc(d, sourceLngLat, targetLngLat, bend){
+
+			bend = bend || 1;
+
+			if (targetLngLat && sourceLngLat) {
+				var sourceXY = projection( sourceLngLat ),
+				targetXY = projection( targetLngLat );
+
+		      if (!targetXY) console.log(d, targetLngLat, targetXY)
+		      	var sourceX = sourceXY[0],
+		      sourceY = sourceXY[1];
+
+		      var targetX = targetXY[0],
+		      targetY = targetXY[1];
+
+		      var dx = targetX - sourceX,
+		      dy = targetY - sourceY,
+		      dr = Math.sqrt(dx * dx + dy * dy)*bend;
+
+		      var west_of_source = (targetX - sourceX) < 0;
+		      if (west_of_source) return "M" + targetX + "," + targetY + "A" + dr + "," + dr + " 0 0,1 " + sourceX + "," + sourceY;
+		      return "M" + sourceX + "," + sourceY + "A" + dr + "," + dr + " 0 0,1 " + targetX + "," + targetY;
+		      
+		  } else {
+		  	return "M0,0,l0,0z";
+		  }
+		};
+
+	</script>
+
 </body>
+
 </html>
