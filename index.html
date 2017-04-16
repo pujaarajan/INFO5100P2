@@ -46,6 +46,10 @@
 			projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
 			pathGenerator = d3.geoPath().projection(projection);
 
+			var tooltip = d3.select("body").append("div")
+			.attr("class", "tooltip")
+			.style("opacity", 0);
+
 			var paths = svg.selectAll("path.state").data(states.features);
 			paths.enter().append("path").attr("class", "state")
 			.merge(paths)
@@ -67,23 +71,21 @@
 			})
 			.attr("class", "arcs")
 			.attr('d', function(d) {
-				return lngLatToArc(d, [Number(d.DLONGITUDE), Number(d.DLATITUDE)],[Number(d.OLONGITUDE), Number(d.OLATITUDE)], 5)
+				return lngLatToArc(d, [Number(d.OLONGITUDE), Number(d.OLATITUDE)], [Number(d.DLONGITUDE), Number(d.DLATITUDE)], 5)
 			});
-			// d3.selectAll(".arcs").style("opacity", "0.5");
+			d3.selectAll(".arcs").style("opacity", "0.5");
 
 			d3.selectAll(".arcs").each(function(d,i){
 
 				var totalLength = d3.select("#line" + i).node().getTotalLength();
-				console.log(totalLength)
 
 				d3.selectAll("#line" + i)
 				.attr("stroke-dasharray", totalLength + " " + totalLength)
-				.attr("stroke-dashoffset", 0)
+				.attr("stroke-dashoffset", totalLength)
 				.transition()
 				.duration(5000)
-				.delay(100*i)
-				.attr("stroke-dashoffset", totalLength)
-				.style("opacity", "0.5")
+				//.delay(100*i)
+				.attr("stroke-dashoffset", 2 * totalLength);
 			});
 
 		}
@@ -110,7 +112,7 @@
 		      var west_of_source = (targetX - sourceX) < 0;
 		      if (west_of_source) return "M" + targetX + "," + targetY + "A" + dr + "," + dr + " 0 0,1 " + sourceX + "," + sourceY;
 		      return "M" + sourceX + "," + sourceY + "A" + dr + "," + dr + " 0 0,1 " + targetX + "," + targetY;
-		      
+
 		  } else {
 		  	return "M0,0,l0,0z";
 		  }
