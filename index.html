@@ -13,6 +13,11 @@
 			fill: none;
 		}
 
+		#slider {
+			fill: black;
+			stroke: gray;
+		}
+
 	</style>
 
 </head>
@@ -26,10 +31,13 @@
 		var mapData;
 		var states;
 		var flightData;
+		var chosenDate;
+		var chosenDateFlights;
+		var chosenRouteFlights;
 
 		d3.queue()
 		.defer(d3.json, "us.json")
-		.defer(d3.csv, "DelayedFlightsTest2.csv")
+		.defer(d3.csv, "JanuaryData.csv")
 		.await(function (error, rawMap, rawFlights) {
 			mapData = rawMap;
 			flightData = rawFlights;
@@ -45,10 +53,6 @@
 
 			projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
 			pathGenerator = d3.geoPath().projection(projection);
-
-			var tooltip = d3.select("body").append("div")
-			.attr("class", "tooltip")
-			.style("opacity", 0);
 
 			var paths = svg.selectAll("path.state").data(states.features);
 			paths.enter().append("path").attr("class", "state")
@@ -88,7 +92,78 @@
 				.attr("stroke-dashoffset", 2 * totalLength);
 			});
 
+			// show the slider
+			var x1 = 50;
+			var x2 = 450;
+			var y = 480;
+			var radius = 10;
+			chosenDate = 1;
+			var sliderLine = svg.append("line")
+			                    .attr("x1", x1)
+                          .attr("x2", x2)
+                          .attr("y1", y)
+                          .attr("y2", y)
+                          .style("stroke", "gray")
+                          .style("stroke-linecap", "round")
+                          .style("stroke-width", 5);
+
+			var circle = svg.append("circle")
+										  .attr("r", radius)
+											.attr("id", "slider")
+										  .attr("cy", y)
+								      .attr("cx", x1)
+											.call(d3.drag()
+											.on("start", dragstarted)
+											.on("drag", dragged)
+											.on("end", dragended));
+			var Slidertext = svg.append("text")
+			                    .attr("x", x1)
+													.attr("y", y + 30)
+													.text(chosenDate);
+
+
+			function dragstarted() {
+				d3.select(this).raise().classed("active", true);
+			}
+
+			function dragended() {
+				d3.select(this).classed("active", false);
+				updateDate(chosenDate);
+			}
+
+			function dragged() {
+				var chosenDate = findNearstDate(d3.event.x);
+				var loc = x1 + (chosenDate - 1) *(x2 - x1)/30;
+				d3.select(this).attr("cx", loc);
+				Slidertext.attr("x", loc).text(chosenDate);
+			}
+
+			function findNearstDate(currentX){
+				var length = (x2 - x1)/30;
+				var i = 0;
+				if(currentX <= x1 + length/2) return 1;
+				else if (currentX >= x2 - length/2) return 31;
+				for(i = 0; i < 31; i++){
+						if(currentX >= x1 + length/2 + length * i && currentX < x1 + length/2 + length * (i+1)) return i+2;
+					}
+				return i;
+			}
+
+			function plotRoutes(){
+
+			}
 		}
+
+		function updateDate(date){
+			chosenDateFlights = [];
+			flightData.forEach(
+				function(d, i){
+					if((Number(d.DAY) == date)) chosenDateFlights.push(d);
+				}
+			)
+		}
+
+
 
 		function lngLatToArc(d, sourceLngLat, targetLngLat, bend){
 
@@ -97,6 +172,7 @@
 			if (targetLngLat && sourceLngLat) {
 				var sourceXY = projection( sourceLngLat ),
 				targetXY = projection( targetLngLat );
+				console.log(d);
 
 		      if (!targetXY) console.log(d, targetLngLat, targetXY)
 		      	var sourceX = sourceXY[0],
