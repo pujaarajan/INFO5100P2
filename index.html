@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>Project2</title>
+	<title>Project 2</title>
 	<link rel="stylesheet" type="text/css" href="css/weather-icons.css" media="screen">
 	<script src="https://d3js.org/d3.v4.min.js"></script>
 	<script src="http://d3js.org/topojson.v2.min.js"></script>
@@ -8,19 +8,24 @@
 	<style>
 
 		.arcs {
-			stroke-width: 0.5px;
-			stroke: tomato;
+			/*			stroke: #FFBC42;*/
+			stroke-width: 2px;
 			fill: none;
+		}
+
+		.arcs:hover {
+			stroke: green;
 		}
 
 		#slider {
 			fill: black;
-			stroke: gray;
+			stroke: grey;
 		}
 
 		.plane {
-			fill: grey;
-
+			fill: #D81159;
+			stroke: #8F2D56;
+			stroke-width: 2px;
 		}
 
 		svg	{
@@ -28,53 +33,53 @@
 			margin: auto;
 		}
 
-		 body {
-        font: 300 112.5%/1.5em "Helvetica", "Arial", sans-serif;
-        margin: 3em 3em 6em;
-        padding: 0;
-      }
+		body {
+			font: 300 112.5%/1.5em "Helvetica", "Arial", sans-serif;
+			margin: 3em 3em 6em;
+			padding: 0;
+		}
 
-      article {
-        margin: auto;
-        width: 30em;
-      }
+		article {
+			margin: auto;
+			width: 30em;
+		}
 
-      h1 {
-        font-size: 3em;
-        line-height: 1em;
-        text-align: center;
-        margin: 0.5em 0;
-      }
+		h1 {
+			font-size: 3em;
+			line-height: 1em;
+			text-align: center;
+			margin: 0.5em 0;
+		}
 
-      p {
-        margin: 1.5em 0;
-      }
+		p {
+			margin: 1.5em 0;
+		}
 
-      figure {
-        margin: 3em auto;
-        width: 368px;
-        height: 152px;
-      }
+		figure {
+			margin: 3em auto;
+			width: 368px;
+			height: 152px;
+		}
 
-      canvas {
-        display: block;
-        float: left;
-        margin-left: 8px;
-        margin-top: 8px;
-      }
+		canvas {
+			display: block;
+			float: left;
+			margin-left: 8px;
+			margin-top: 8px;
+		}
 
-      pre {
-        font: 77.8%/1.5em "Lucida Sans Typewriter", "Lucida Console", "Monaco", "Bitstream Vera Sans Mono", monospace;
-        margin: 3.375em 1.6875em;
-      }
+		pre {
+			font: 77.8%/1.5em "Lucida Sans Typewriter", "Lucida Console", "Monaco", "Bitstream Vera Sans Mono", monospace;
+			margin: 3.375em 1.6875em;
+		}
 
-      a, pre span.comment {
-        color: royalblue;
-      }
+		a, pre span.comment {
+			color: royalblue;
+		}
 
-      a:visited, pre span.constant {
-        color: indianred;
-      }
+		a:visited, pre span.constant {
+			color: indianred;
+		}
 
 	</style>
 
@@ -89,21 +94,74 @@
 		var mapData;
 		var states;
 		var flightData;
+		var sumDelay;
 		var chosenDate;
 		var chosenDateFlights;
 		var chosenRouteFlights;
+		var routes_set = {};
+		var i = 0;
+		var arcs;
+
+		class route {
+			constructor(month, day, olong, olat, dlong, dlat, origin, destination, carrier, cancelled, delayed) {
+				this.month = month;
+				this.day = day;
+				this.olong = olong;
+				this.olat = olat;
+				this.dlong = dlong;
+				this.dlat = dlat;
+				this.origin = origin;
+				this.destination = destination;
+				this.carrier = carrier;
+				this.cancelled = cancelled;
+				this.delayed = delayed;
+			}
+		};
 
 		d3.queue()
 		.defer(d3.json, "us.json")
 		.defer(d3.csv, "JanuaryData.csv")
-		.await(function (error, rawMap, rawFlights) {
+		.defer(d3.csv, "sumDelayCancel.csv")
+		.await(function (error, rawMap, rawFlights, rawSum) {
+
 			mapData = rawMap;
 			flightData = rawFlights;
 			states = topojson.feature(rawMap, rawMap.objects.states);
+			sumDelay = rawSum;
+
+			rawFlights.forEach(function(element) {
+
+				if(element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT in routes_set == false) {
+					routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT] = {};
+				}
+
+				if(element.DAY in routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT] == false) {
+					routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT][element.DAY] = {};
+				}
+
+				var new_route = new route(
+					element.MONTH,
+					element.DAY,
+					element.OLONGITUDE,
+					element.OLATITUDE,
+					element.DLONGITUDE,
+					element.DLATITUDE,
+					element.ORIGIN_AIRPORT,
+					element.DESTINATION_AIRPORT,
+					element.AIRLINE,
+					element.CANCELLED);
+
+				routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT][element.DAY]["route"+i] = new_route;
+
+				i++
+			});
+
 			showMap();
+			showSlider();
 			showRoutes();
 			animatePlanes();
 		});
+
 
 		function showMap(){
 
@@ -114,68 +172,36 @@
 			projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
 			pathGenerator = d3.geoPath().projection(projection);
 
-			var tooltip = d3.select("body").append("div")
-			.attr("class", "tooltip")
-			.style("opacity", 0);
-
 			var paths = svg.selectAll("path.state").data(states.features);
 			paths.enter().append("path").attr("class", "state")
 			.merge(paths)
-			.style("fill", "white")
+			.style("fill", "#fceccb")
+			.style("fill-opacity", 0.7)
 			.attr("stroke", "#ccc")
 			.attr("stroke-width", 0.8)
 			.attr("d", function (state) {
 				return pathGenerator(state);
 			});
 
+			arcs = svg.selectAll("path.arcs");
+
 		}
 
 
-		function showRoutes(){
-
-			var svg = d3.select("#map");
-
-			var arcs = svg.selectAll("path.arcs");
-			updateDate(1);
-			arcs.data(chosenDateFlights)
-			.enter()
-			.append("path")
-			.style("opacity", "0")
-			.attr("id" , function(d,i){
-				return "line" + i;
-			})
-			.attr("class", "arcs")
-			.attr('d', function(d) {
-				return lngLatToArc(d, [Number(d.OLONGITUDE), Number(d.OLATITUDE)], [Number(d.DLONGITUDE), Number(d.DLATITUDE)], 5)
-			})
-			.on('click', function(){console.log('hi')});
-			d3.selectAll(".arcs").style("opacity", "0.5");
-
-			d3.selectAll(".arcs").each(function(d,i){
-
-				var totalLength = d3.select("#line" + i).node().getTotalLength();
-
-				d3.selectAll("#line" + i)
-				.attr("stroke-dasharray", totalLength + " " + totalLength)
-				.attr("stroke-dashoffset", totalLength)
-				.transition()
-				.duration(5000)
-				//.delay(100*i)
-				.attr("stroke-dashoffset", 0);
-			});
-
-			// show the slider
+		function showSlider(){
 			var x1 = 150;
 			var x2 = 800;
 			var y = 875;
 			var radius = 10;
 			chosenDate = 1;
+
+			var svg = d3.select("#map");
 			var sliderLine = svg.append("line")
 			.attr("x1", x1)
 			.attr("x2", x2)
 			.attr("y1", y)
 			.attr("y2", y)
-			.style("stroke", "gray")
+			.style("stroke", "grey")
 			.style("stroke-linecap", "round")
 			.style("stroke-width", 5);
 
@@ -188,11 +214,15 @@
 				.on("start", dragstarted)
 				.on("drag", dragged)
 				.on("end", dragended));
+
 			var Slidertext = svg.append("text")
 			.attr("x", x1)
 			.attr("y", y + 30)
 			.text(chosenDate);
 
+			updateDate(chosenDate)
+
+			showSum();
 
 			function dragstarted() {
 				d3.select(this).raise().classed("active", true);
@@ -201,7 +231,7 @@
 			function dragended() {
 				d3.select(this).classed("active", false);
 				updateDate(chosenDate);
-				plotRoutes();
+				showRoutes();
 				animatePlanes();
 			}
 
@@ -222,45 +252,118 @@
 				}
 				return i;
 			}
-			updateDate(7);
 
-			function plotRoutes(){
-				arcs.exit().remove();
-				d3.selectAll(".arcs").remove();
-				arcs.data(chosenDateFlights).enter()
-				.append("path")
-				.style("opacity", "0")
-				.attr("id" , function(d,i){
-					return "line" + i;
-				})
-				.attr("class", "arcs")
-				.attr('d', function(d) {
-					return lngLatToArc(d, [Number(d.OLONGITUDE), Number(d.OLATITUDE)], [Number(d.DLONGITUDE), Number(d.DLATITUDE)], 5)
-				})
-				.on("click", function(){console.log("hi")});
-				d3.selectAll(".arcs").style("opacity", "0.5");
+			function showSum(){
 
-				d3.selectAll(".arcs").each(function(d,i){
-					var totalLength = d3.select("#line" + i).node().getTotalLength();
+				var height = 60;
+				var padding = 5;
+				var scaleX = d3.scaleLinear().domain([1, 31]).range([x1, x2]);
 
-					d3.selectAll("#line" + i)
-					.attr("stroke-dasharray", totalLength + " " + totalLength)
-					.attr("stroke-dashoffset", totalLength)
-					.transition()
-					.duration(5000)
-					//.delay(100*i)
-					.attr("stroke-dashoffset", 0);
+				var extentY = d3.extent(sumDelay, function(d) { return +d.SumDC; });
+				var scaleY = d3.scaleLinear().domain(extentY).range([y - padding , y -padding - height]);
+
+				var line = d3.line()
+				.x(function(d) { return scaleX(+d.Day); })
+				.y(function(d) { return scaleY(+d.SumDC); });
+				var svg = d3.select("#map");
+
+				var g = svg.append("g");
+
+				g.append("path")
+				.datum(sumDelay)
+				.attr("class", "delayLine")
+				.attr("fill", "none")
+				.attr("stroke", "steelblue")
+				.attr("stroke-linejoin", "round")
+				.attr("stroke-linecap", "round")
+				.attr("stroke-width", 1.5)
+				.attr("d", line);
+
+			}
+
+		};
+
+
+		function showRoutes(){
+
+			var svg = d3.select("#map");
+
+			arcs.exit().remove();
+			d3.selectAll(".arcs").remove();
+
+			arcs.data(chosenDateFlights)
+			.enter()
+			.append("path")
+			.style("opacity", "0")
+			.style("pointer-events", "all")
+			.attr("id" , function(d,i){
+				return "line" + i;
+			})
+			.attr("class", "arcs")
+			.attr('d', function(d) {
+				return lngLatToArc(d, d[1], d[2], 5)
+			})
+			.style("stroke", function(d) {
+				return lineChange(d[3]);
+			})
+			.on("click", function(d) {
+				console.log(d[0]); 
+			})
+			.on("mouseover", function(d) {
+				d3.select(this).style("stroke", "black");
+				d3.select(this).style("stroke-width", "4px");
+			})
+			.on("mouseout", function(d) {
+				d3.select(this).style("stroke", function(d){
+					return lineChange(d[3]);
 				});
-			}
-			function updateDate(date){
-				chosenDateFlights = [];
-				flightData.forEach(
-					function(d, i){
-						if((Number(d.DAY) == date)) chosenDateFlights.push(d);
-					}
-					)
-			}
+				d3.select(this).style("stroke-width", "2px");
+			});
+
+			d3.selectAll(".arcs").style("opacity", "0.5");
+
+			d3.selectAll(".arcs").each(function(d,i){
+
+				var totalLength = d3.select("#line" + i).node().getTotalLength();
+
+				d3.selectAll("#line" + i)
+				.attr("stroke-dasharray", totalLength + " " + totalLength)
+				.attr("stroke-dashoffset", totalLength)
+				.transition()
+				.duration(5000)
+
+				.attr("stroke-dashoffset", 0);
+			});
+
+		};
+
+
+		function lineChange(frequency){
+			if(frequency >= 20) {return "#a9c74d";}
+			else if (frequency <= 20 && frequency > 10 ) { return "#eeee59";}
+			else{return "#f0ca27";}
 		}
+
+		
+		function updateDate(date){
+
+			chosenDateFlights = [];
+
+			for (var link in routes_set) {
+
+				if(date in routes_set[link]){
+
+					var temp = routes_set[link][date][Object.keys(routes_set[link][date])[0]]
+					var oLocation = [Number(temp.olong) , Number(temp.olat)]
+					var dLocation = [Number(temp.dlong) , Number(temp.dlat)]
+					var routeInfo = [link,oLocation, dLocation,Object.keys(routes_set[link]).length]
+
+					chosenDateFlights.push(routeInfo);
+				};
+			};
+			debugger;
+		}
+
 
 		function animatePlanes(){
 
@@ -337,45 +440,45 @@
 </body>
 
 <figure class="icons">
-        <canvas id="clear-day" width="64" height="64">
-        </canvas>
+	<canvas id="clear-day" width="64" height="64">
+	</canvas>
 
-        <canvas id="rain" width="64" height="64">
-        </canvas>
+	<canvas id="rain" width="64" height="64">
+	</canvas>
 
 
-        <canvas id="snow" width="64" height="64">
-        </canvas>
+	<canvas id="snow" width="64" height="64">
+	</canvas>
 
-        <canvas id="wind" width="64" height="64">
-        </canvas>
+	<canvas id="wind" width="64" height="64">
+	</canvas>
 
-        <canvas id="fog" width="64" height="64">
-        </canvas>
-      </figure>
+	<canvas id="fog" width="64" height="64">
+	</canvas>
+</figure>
 
-    <script src="skycons.js"></script>
+<script src="skycons.js"></script>
 
-    <script>
-      var icons = new Skycons(),
-          list  = [
-            "clear-day", "clear-night", "partly-cloudy-day",
-            "partly-cloudy-night", "cloudy", "rain", "sleet", "snow", "wind",
-            "fog"
-          ],
-          i;
+<script>
+	var icons = new Skycons(),
+	list  = [
+	"clear-day", "clear-night", "partly-cloudy-day",
+	"partly-cloudy-night", "cloudy", "rain", "sleet", "snow", "wind",
+	"fog"
+	],
+	i;
 
-          console.log(icons)
+	console.log(icons)
 
-      for(i = list.length; i--; )
-        icons.set(list[i], list[i]);
+	for(i = list.length; i--; )
+		icons.set(list[i], list[i]);
 
-      icons.play();
-    </script>
+	icons.play();
+</script>
 
-	<i class="wi wi-day-sunny" style="font-size:50px"></i>
-	<i class="wi wi-rain wi-fw" style="font-size:50px"></i>
-	<i class="wi wi-snow" style="font-size:50px"></i>
-	<i class="wi wi-fog" style="font-size:50px"></i>
+<i class="wi wi-day-sunny" style="font-size:50px"></i>
+<i class="wi wi-rain wi-fw" style="font-size:50px"></i>
+<i class="wi wi-snow" style="font-size:50px"></i>
+<i class="wi wi-fog" style="font-size:50px"></i>
 
 </html>
