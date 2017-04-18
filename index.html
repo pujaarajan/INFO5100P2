@@ -4,6 +4,7 @@
 	<link rel="stylesheet" type="text/css" href="css/weather-icons.css" media="screen">
 	<script src="https://d3js.org/d3.v4.min.js"></script>
 	<script src="http://d3js.org/topojson.v2.min.js"></script>
+<script src="skycons.js"></script>
 
 	<style>
 
@@ -98,6 +99,7 @@
 <body>
 	<h3 id="routeInfo"> Origin - Destination : </h3>
 
+
 	<svg id="map" width="1000" height="800"></svg>
 
 	<script>
@@ -105,6 +107,7 @@
 		var mapData;
 		var states;
 		var flightData;
+		var weatherData;
 		var sumDelay;
 		var chosenDate;
 		var chosenDateFlights;
@@ -114,6 +117,7 @@
 		var routes_set = {};
 		var i = 0;
 		var arcs;
+		var skycons = new Skycons();
 
 		class route {
 			constructor(month, day, olong, olat, dlong, dlat, origin, destination, carrier, departureTime, cancelled, delayed) {
@@ -135,13 +139,19 @@
 		d3.queue()
 		.defer(d3.json, "us.json")
 		.defer(d3.csv, "JanuaryData.csv")
+		.defer(d3.csv, "weather.csv")
 		.defer(d3.csv, "sumDelayCancel.csv")
-		.await(function (error, rawMap, rawFlights, rawSum) {
+		.await(function (error, rawMap, rawFlights, rawWeather, rawSum) {
 
 			mapData = rawMap;
 			flightData = rawFlights;
+			weatherData = rawWeather;
 			states = topojson.feature(rawMap, rawMap.objects.states);
 			sumDelay = rawSum;
+
+			dateWeather = d3.map(rawWeather, function (d) {
+				return +d.DAY;
+			});
 
 			rawFlights.forEach(function(element) {
 
@@ -393,8 +403,11 @@
 			else{return "#f0ca27";}
 		}
 
+
+
 		
 		function updateDate(date){
+
 
 			d3.select("#flightSvg").remove();
 
@@ -425,7 +438,39 @@
 					chosenDateFlights.push(routeInfo);
 				};
 			};
+
+			showWeather(date);
+
 		}
+
+
+		function showWeather(date){
+
+			
+
+				console.log(dateWeather.get(date));
+				if (dateWeather.get(date)['Rain'] == 1){
+					skycons.add("rain", Skycons.RAIN);
+					
+				}
+				if (dateWeather.get(date)['Snow'] == 1){
+					skycons.add("snow", Skycons.SNOW);
+					
+				}
+				if (dateWeather.get(date)['Fog'] == 1){
+					skycons.add("fog", Skycons.FOG);
+
+				}
+
+				console.log(Number(dateWeather.get(date)['Rain']) + Number(dateWeather.get(date)['Snow']) + Number(dateWeather.get(date)['Fog']) );
+
+				if (Number(dateWeather.get(date)['Rain']) + Number(dateWeather.get(date)['Snow']) + Number(dateWeather.get(date)['Fog'])==0){
+					skycons.add("sunny", Skycons.CLEAR_DAY);
+				}
+
+				skycons.play();
+
+			}
 
 
 		function animatePlanes(){
@@ -502,6 +547,9 @@
 
 </body>
 
+	<canvas id="sunny" width="64" height="64">
+
+
 <!-- <figure class="icons">
 	<canvas id="clear-day" width="64" height="64">
 	</canvas>
@@ -518,26 +566,7 @@
 
 	<canvas id="fog" width="64" height="64">
 	</canvas>
-</figure>
 
-<script src="skycons.js"></script>
-
-<script>
-	var icons = new Skycons(),
-	list  = [
-	"clear-day", "clear-night", "partly-cloudy-day",
-	"partly-cloudy-night", "cloudy", "rain", "sleet", "snow", "wind",
-	"fog"
-	],
-	i;
-
-	console.log(icons)
-
-	for(i = list.length; i--; )
-		icons.set(list[i], list[i]);
-
-	icons.play();
-</script>
 
 <i class="wi wi-day-sunny" style="font-size:50px"></i>
 <i class="wi wi-rain wi-fw" style="font-size:50px"></i>
