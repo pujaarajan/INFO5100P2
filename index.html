@@ -4,7 +4,7 @@
 	<link rel="stylesheet" type="text/css" href="css/weather-icons.css" media="screen">
 	<script src="https://d3js.org/d3.v4.min.js"></script>
 	<script src="http://d3js.org/topojson.v2.min.js"></script>
-<script src="skycons.js"></script>
+	<script src="skycons.js"></script>
 
 	<style>
 
@@ -36,6 +36,12 @@
 
 		#flightSvg {
 			background: lightgrey;
+		}
+
+		.flightRoute{
+			display: block;
+			font-size: 14px;
+			color: white;
 		}
 
 		body {
@@ -74,9 +80,7 @@
 
 		canvas {
 			display: block;
-			float: left;
-			margin-left: 8px;
-			margin-top: 8px;
+			margin: 20px auto;
 		}
 
 		pre {
@@ -97,10 +101,11 @@
 </head>
 
 <body>
-	<h3 id="routeInfo"> Origin - Destination : </h3>
-
+	<h3 id="routeInfo"> Select A Flight </h3>
 
 	<svg id="map" width="1000" height="800"></svg>
+
+	<canvas id="weather" width="100" height="100"></canvas>
 
 	<script>
 
@@ -153,15 +158,16 @@
 				return +d.DAY;
 			});
 
+
 			rawFlights.forEach(function(element) {
 
 				if(element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT in routes_set == false) {
 					routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT] = {};
-				}
+				};
 
 				if(element.DAY in routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT] == false) {
 					routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT][element.DAY] = {};
-				}
+				};
 
 				var new_route = new route(
 					element.MONTH,
@@ -211,7 +217,7 @@
 
 			arcs = svg.selectAll("path.arcs");
 
-		}
+		};
 
 
 		function showSlider(){
@@ -254,7 +260,7 @@
 
 			function dragstarted() {
 				d3.select(this).raise().classed("active", true);
-			}
+			};
 
 
 			function dragended() {
@@ -262,7 +268,7 @@
 				updateDate(chosenDate);
 				showRoutes();
 				animatePlanes();
-			}
+			};
 
 
 			function dragged() {
@@ -270,7 +276,7 @@
 				var loc = x1 + (chosenDate - 1) *(x2 - x1)/30;
 				d3.select(this).attr("cx", loc);
 				Slidertext.attr("x", loc).text(chosenDate);
-			}
+			};
 
 
 			function findNearstDate(currentX){
@@ -282,7 +288,7 @@
 					if(currentX >= x1 + length/2 + length * i && currentX < x1 + length/2 + length * (i+1)) return i+2;
 				}
 				return i;
-			}
+			};
 
 
 			function showSum(){
@@ -311,7 +317,7 @@
 				.attr("stroke-width", 1.5)
 				.attr("d", line);
 
-			}
+			};
 
 		};
 
@@ -339,34 +345,9 @@
 				return lineChange(d[3]);
 			})
 			.on("click", function(d) {
-				var counter = 0
-				for(var index in delayedFlights){
-					if(delayedFlights[index][0] == d[0]){
-						counter += 1;
-
-					}
-				};
-
 				debugger;
-
-				if(d3.select("#flightSvg").empty()){
-					d3.select("body").append("svg")
-					.attr("id", "flightSvg")
-					.attr("width", 700)
-					.attr("height", 800)
-					.append("text")
-					.attr("x", 350)
-					.attr("y", 150)
-					.attr("text-anchor", "middle")
-					.attr("stroke", "black")
-					.attr("alignment-baseline","central")
-					.text("Origin - Destination : " + d[0] + " Delayed Flights : " + counter);
-				}else{
-					d3.select("#flightSvg").select("text")
-					.text("Origin - Destination : " + d[0] + " Delayed Flights : " + counter);
-				};
-
-				d3.select("#routeInfo").html("Origin - Destination : " + d[0] + " Delayed Flights : " + counter);
+				d3.select("#flightSvg").selectAll(".flightRoute").remove();
+				showDetails(d);
 			})
 			.on("mouseover", function(d) {
 				d3.select(this).style("stroke", "black");
@@ -400,14 +381,11 @@
 		function lineChange(frequency){
 			if(frequency >= 20) {return "#a9c74d";}
 			else if (frequency <= 20 && frequency > 10 ) { return "#eeee59";}
-			else{return "#f0ca27";}
-		}
-
-
+			else{return "#f0ca27";};
+		};
 
 		
 		function updateDate(date){
-
 
 			d3.select("#flightSvg").remove();
 
@@ -427,8 +405,8 @@
 							delayedFlights.push([link, tempDelayed.carrier, tempDelayed.departureTime, tempDelayed.delayed])
 						}else if (tempDelayed.cancelled == 1){
 							cancelledFlights.push([link, tempDelayed.carrier])
-						}
-					}
+						};
+					};
 
 					var temp = routes_set[link][date][Object.keys(routes_set[link][date])[0]]
 					var oLocation = [Number(temp.olong) , Number(temp.olat)]
@@ -440,37 +418,83 @@
 			};
 
 			showWeather(date);
-
-		}
+		};
 
 
 		function showWeather(date){
 
-			
+			if (dateWeather.get(date)['Rain'] == 1){
+				skycons.set("weather", Skycons.RAIN);
+			}else if (dateWeather.get(date)['Snow'] == 1){
+				skycons.set("weather", Skycons.SNOW);
+			}else if (dateWeather.get(date)['Fog'] == 1){
+				skycons.set("weather", Skycons.FOG);
+			}else if (Number(dateWeather.get(date)['Rain']) + Number(dateWeather.get(date)['Snow']) + Number(dateWeather.get(date)['Fog'])==0){
+				skycons.set("weather", Skycons.CLEAR_DAY);
+			};
 
-				console.log(dateWeather.get(date));
-				if (dateWeather.get(date)['Rain'] == 1){
-					skycons.add("rain", Skycons.RAIN);
-					
-				}
-				if (dateWeather.get(date)['Snow'] == 1){
-					skycons.add("snow", Skycons.SNOW);
-					
-				}
-				if (dateWeather.get(date)['Fog'] == 1){
-					skycons.add("fog", Skycons.FOG);
+			skycons.play();
+		};
 
-				}
 
-				console.log(Number(dateWeather.get(date)['Rain']) + Number(dateWeather.get(date)['Snow']) + Number(dateWeather.get(date)['Fog']) );
+		function showDetails(d){
 
-				if (Number(dateWeather.get(date)['Rain']) + Number(dateWeather.get(date)['Snow']) + Number(dateWeather.get(date)['Fog'])==0){
-					skycons.add("sunny", Skycons.CLEAR_DAY);
-				}
+			var counter = 0
+			var tempDelayed = [0];
 
-				skycons.play();
+			for(var index in delayedFlights){
+				if(delayedFlights[index][0] == d[0]){
+					tempDelayed.push(delayedFlights[index])
+					counter += 1;
+				};
+			};
 
-			}
+			if(d3.select("#flightSvg").empty()){
+				d3.select("body").append("svg")
+				.attr("id", "flightSvg")
+				.attr("width", 700)
+				.attr("height", 800)
+				.append("text")
+				.attr("x", 350)
+				.attr("y", 80)
+				.attr("text-anchor", "middle")
+				.attr("stroke", "black")
+				.attr("alignment-baseline","central")
+				.text("Origin - Destination : " + d[0] + "\u00A0\u00A0\u00A0\u00A0\u00A0" + " Delayed Flights : " + counter)
+
+				printFlights(tempDelayed);
+
+			}else{
+				d3.select("#flightSvg").select("text")
+				.text("Origin - Destination : " + d[0] + "\u00A0\u00A0\u00A0\u00A0\u00A0" + " Delayed Flights : " + counter)
+
+				printFlights(tempDelayed);
+			};
+
+			d3.select("#routeInfo").html("Flight Route : " + d[0]);
+
+		};
+
+
+		function printFlights(tempDelayed){
+
+			d3.select("#flightSvg").selectAll("text")  
+			.data(tempDelayed)
+			.enter()
+			.append("text")
+			.attr("class", "flightRoute")
+			.attr("x", 350)
+			.attr("y", function(d,i){
+				return 100 + (50*i);
+			})
+			.attr("text-anchor", "middle")
+			.attr("stroke", "black")
+			.attr("alignment-baseline","central")
+			.text(function(d){
+				debugger;
+				return "Carrier - " + d[1] + "\u00A0\u00A0\u00A0" + " Departure Time - " + d[2] + "\u00A0\u00A0\u00A0" + " Delayed Min - " + d[3]; 
+			});
+		};
 
 
 		function animatePlanes(){
@@ -482,7 +506,7 @@
 				plane.transition()
 				.duration(5000)
 				.attrTween("transform", delta(route.node()));
-			}
+			};
 
 			function delta(path) {
 				var l = path.getTotalLength();
@@ -498,9 +522,9 @@
 
 						var s = Math.min(Math.sin(Math.PI * t) * 0.7, 0.3);
 						return "translate(" + p.x + "," + p.y + ") scale(" + s + ") rotate(" + r + ")";
-					}
-				}
-			}
+					};
+				};
+			};
 
 			d3.selectAll(".arcs").each(function(d,i){
 				var plane = svg.append("path")
@@ -511,9 +535,8 @@
 				transition(plane, route);
 
 			});
+		};
 
-
-		}
 
 		function lngLatToArc(d, sourceLngLat, targetLngLat, bend){
 
@@ -540,37 +563,11 @@
 
 			} else {
 				return "M0,0,l0,0z";
-			}
+			};
 		};
 
 	</script>
 
 </body>
-
-	<canvas id="sunny" width="64" height="64">
-
-
-<!-- <figure class="icons">
-	<canvas id="clear-day" width="64" height="64">
-	</canvas>
-
-	<canvas id="rain" width="64" height="64">
-	</canvas>
-
-
-	<canvas id="snow" width="64" height="64">
-	</canvas>
-
-	<canvas id="wind" width="64" height="64">
-	</canvas>
-
-	<canvas id="fog" width="64" height="64">
-	</canvas>
-
-
-<i class="wi wi-day-sunny" style="font-size:50px"></i>
-<i class="wi wi-rain wi-fw" style="font-size:50px"></i>
-<i class="wi wi-snow" style="font-size:50px"></i>
-<i class="wi wi-fog" style="font-size:50px"></i> -->
 
 </html>
