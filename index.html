@@ -33,6 +33,10 @@
 			margin: auto;
 		}
 
+		#flightSvg {
+			background: lightgrey;
+		}
+
 		body {
 			font: 300 112.5%/1.5em "Helvetica", "Arial", sans-serif;
 			margin: 3em 3em 6em;
@@ -49,6 +53,12 @@
 			line-height: 1em;
 			text-align: center;
 			margin: 0.5em 0;
+		}
+
+		h3 {
+			font-size: 1.5em;
+			line-height: 1em;
+			text-align: center;
 		}
 
 		p {
@@ -86,8 +96,9 @@
 </head>
 
 <body>
+	<h3 id="routeInfo"> Origin - Destination : </h3>
 
-	<svg id="map" width="1000" height="1000"></svg>
+	<svg id="map" width="1000" height="800"></svg>
 
 	<script>
 
@@ -98,12 +109,14 @@
 		var chosenDate;
 		var chosenDateFlights;
 		var chosenRouteFlights;
+		var delayedFlights;
+		var cancelledFlights;
 		var routes_set = {};
 		var i = 0;
 		var arcs;
 
 		class route {
-			constructor(month, day, olong, olat, dlong, dlat, origin, destination, carrier, cancelled, delayed) {
+			constructor(month, day, olong, olat, dlong, dlat, origin, destination, carrier, departureTime, cancelled, delayed) {
 				this.month = month;
 				this.day = day;
 				this.olong = olong;
@@ -113,6 +126,7 @@
 				this.origin = origin;
 				this.destination = destination;
 				this.carrier = carrier;
+				this.departureTime = departureTime;
 				this.cancelled = cancelled;
 				this.delayed = delayed;
 			}
@@ -149,7 +163,9 @@
 					element.ORIGIN_AIRPORT,
 					element.DESTINATION_AIRPORT,
 					element.AIRLINE,
-					element.CANCELLED);
+					element.DEPARTURE_TIME,
+					element.CANCELLED,
+					element.ARRIVAL_DELAY);
 
 				routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT][element.DAY]["route"+i] = new_route;
 
@@ -166,10 +182,10 @@
 		function showMap(){
 
 			var svg = d3.select("#map");
-			projection = d3.geoAlbersUsa();
+			projection = d3.geoAlbersUsa().scale(75);
 			var pathGenerator = d3.geoPath().projection(projection);
 
-			projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], states);
+			projection.fitExtent([[-70,-70], [(svg.attr("width")), (svg.attr("height"))]], states);
 			pathGenerator = d3.geoPath().projection(projection);
 
 			var paths = svg.selectAll("path.state").data(states.features);
@@ -191,8 +207,9 @@
 		function showSlider(){
 			var x1 = 150;
 			var x2 = 800;
-			var y = 875;
-			var radius = 10;
+			var y = 750
+			;
+			var radius = 8;
 			chosenDate = 1;
 
 			var svg = d3.select("#map");
@@ -210,13 +227,14 @@
 			.attr("id", "slider")
 			.attr("cy", y)
 			.attr("cx", x1)
+			.style("fill", "grey")
 			.call(d3.drag()
 				.on("start", dragstarted)
 				.on("drag", dragged)
 				.on("end", dragended));
 
 			var Slidertext = svg.append("text")
-			.attr("x", x1)
+			.attr("x", x1 - 6)
 			.attr("y", y + 30)
 			.text(chosenDate);
 
@@ -228,6 +246,7 @@
 				d3.select(this).raise().classed("active", true);
 			}
 
+
 			function dragended() {
 				d3.select(this).classed("active", false);
 				updateDate(chosenDate);
@@ -235,12 +254,14 @@
 				animatePlanes();
 			}
 
+
 			function dragged() {
 				chosenDate = findNearstDate(d3.event.x);
 				var loc = x1 + (chosenDate - 1) *(x2 - x1)/30;
 				d3.select(this).attr("cx", loc);
 				Slidertext.attr("x", loc).text(chosenDate);
 			}
+
 
 			function findNearstDate(currentX){
 				var length = (x2 - x1)/30;
@@ -252,6 +273,7 @@
 				}
 				return i;
 			}
+
 
 			function showSum(){
 
@@ -307,7 +329,34 @@
 				return lineChange(d[3]);
 			})
 			.on("click", function(d) {
-				console.log(d[0]); 
+				var counter = 0
+				for(var index in delayedFlights){
+					if(delayedFlights[index][0] == d[0]){
+						counter += 1;
+
+					}
+				};
+
+				debugger;
+
+				if(d3.select("#flightSvg").empty()){
+					d3.select("body").append("svg")
+					.attr("id", "flightSvg")
+					.attr("width", 700)
+					.attr("height", 800)
+					.append("text")
+					.attr("x", 350)
+					.attr("y", 150)
+					.attr("text-anchor", "middle")
+					.attr("stroke", "black")
+					.attr("alignment-baseline","central")
+					.text("Origin - Destination : " + d[0] + " Delayed Flights : " + counter);
+				}else{
+					d3.select("#flightSvg").select("text")
+					.text("Origin - Destination : " + d[0] + " Delayed Flights : " + counter);
+				};
+
+				d3.select("#routeInfo").html("Origin - Destination : " + d[0] + " Delayed Flights : " + counter);
 			})
 			.on("mouseover", function(d) {
 				d3.select(this).style("stroke", "black");
@@ -347,11 +396,26 @@
 		
 		function updateDate(date){
 
+			d3.select("#flightSvg").remove();
+
 			chosenDateFlights = [];
+			delayedFlights = [];
+			cancelledFlights = [];
 
 			for (var link in routes_set) {
 
 				if(date in routes_set[link]){
+
+					for(delayed in routes_set[link][date]){
+
+						tempDelayed = routes_set[link][date][delayed];
+
+						if(Number(tempDelayed.delayed) > 0){
+							delayedFlights.push([link, tempDelayed.carrier, tempDelayed.departureTime, tempDelayed.delayed])
+						}else if (tempDelayed.cancelled == 1){
+							cancelledFlights.push([link, tempDelayed.carrier])
+						}
+					}
 
 					var temp = routes_set[link][date][Object.keys(routes_set[link][date])[0]]
 					var oLocation = [Number(temp.olong) , Number(temp.olat)]
@@ -361,7 +425,6 @@
 					chosenDateFlights.push(routeInfo);
 				};
 			};
-			debugger;
 		}
 
 
@@ -439,7 +502,7 @@
 
 </body>
 
-<figure class="icons">
+<!-- <figure class="icons">
 	<canvas id="clear-day" width="64" height="64">
 	</canvas>
 
@@ -479,6 +542,6 @@
 <i class="wi wi-day-sunny" style="font-size:50px"></i>
 <i class="wi wi-rain wi-fw" style="font-size:50px"></i>
 <i class="wi wi-snow" style="font-size:50px"></i>
-<i class="wi wi-fog" style="font-size:50px"></i>
+<i class="wi wi-fog" style="font-size:50px"></i> -->
 
 </html>
