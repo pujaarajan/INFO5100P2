@@ -9,10 +9,14 @@
 
 	<style>
 
+
 		.arcs {
 			/*			stroke: #FFBC42;*/
 			stroke-width: 5px;
 			fill: none;
+		}
+		body {
+			background-color: white;
 		}
 
 		.arcs:hover {
@@ -106,6 +110,20 @@
 			color: indianred;
 		}
 
+		#scatterTooltip {
+		  position: absolute;
+		  text-align: center;
+		  width: 60px;
+		  height: 28px;
+		  padding: 2px;
+		  font: 12px sans-serif;
+		  background: #77a88b;
+		  border: 0px;
+		  border-radius: 1px;
+		  pointer-events: none;
+		}
+
+
 	</style>
 
 </head>
@@ -125,12 +143,11 @@
 
 		var mapData;
 		var states;
-		var flightData;
+		// var flightData;
 		var weatherData;
 		var sumDelay;
 		var chosenDate;
 		var chosenDateFlights;
-		var chosenRouteFlights;
 		var delayedFlights;
 		var cancelledFlights;
 		var routes_set = {};
@@ -139,8 +156,7 @@
 		var skycons = new Skycons({"color": "#2b8cbe"});
 
 		class route {
-			constructor(month, day, olong, olat, dlong, dlat, origin, destination, carrier, departureTime, cancelled, delayed) {
-				this.month = month;
+			constructor(day, olong, olat, dlong, dlat, origin, destination, carrier, departureTime, cancelled, delayed, rSchedule, flightNumber, delayType, dist) {
 				this.day = day;
 				this.olong = olong;
 				this.olat = olat;
@@ -149,15 +165,19 @@
 				this.origin = origin;
 				this.destination = destination;
 				this.carrier = carrier;
-				this.departureTime =  Math.floor(Number(departureTime)/100) + Number(departureTime)%100/60;	
+				this.departureTime = departureTime;
 				this.cancelled = cancelled;
 				this.delayed = delayed;
+				this.rScheduled = rSchedule;
+				this.flightNumber = flightNumber;
+				this.delayType = delayType;
+				this.dist = dist;
 			}
 		};
 
 		d3.queue()
 		.defer(d3.json, "us.json")
-		.defer(d3.csv, "JanuaryData.csv")
+		.defer(d3.csv, "JanuaryData0418.csv")
 		.defer(d3.csv, "weather.csv")
 		.defer(d3.csv, "sumDelayCancel.csv")
 		.await(function (error, rawMap, rawFlights, rawWeather, rawSum) {
@@ -184,7 +204,6 @@
 				};
 
 				var new_route = new route(
-					element.MONTH,
 					element.DAY,
 					element.OLONGITUDE,
 					element.OLATITUDE,
@@ -193,9 +212,14 @@
 					element.ORIGIN_AIRPORT,
 					element.DESTINATION_AIRPORT,
 					element.AIRLINE,
-					element.DEPARTURE_TIME,
+					element.SCHEDULED_DEPARTURE,
 					element.CANCELLED,
-					element.ARRIVAL_DELAY);
+					element.ARRIVAL_DELAY,
+					element.rSCHEDULED,
+					element.FLIGHT_NUMBER,
+					element.DELAY_TYPE,
+					element.DISTANCE
+				);
 
 				routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT][element.DAY]["route"+i] = new_route;
 
@@ -205,9 +229,8 @@
 			showMap();
 			showSlider();
 			showRoutes();
-			updateDate(10);
 			animatePlanes();
-			showScatter(2);
+			showScatter(1);
 		});
 
 
@@ -223,9 +246,9 @@
 			var paths = svg.selectAll("path.state").data(states.features);
 			paths.enter().append("path").attr("class", "state")
 			.merge(paths)
-			.style("fill", "#f7fcf0")
+			.style("fill", "#FFEBEE")
 			.style("fill-opacity", 1)
-			.attr("stroke", "black")
+			.attr("stroke", "#ccc")
 			.attr("stroke-width", 1)
 			.attr("stroke-opacity", 0.7)
 			.attr("d", function (state) {
@@ -233,6 +256,7 @@
 			});
 
 			arcs = svg.selectAll("path.arcs");
+			var tooltip = d3.select("body").append("div").attr("id", "scatterTooltip").style("opacity", 0);
 
 		};
 
@@ -271,6 +295,7 @@
 			var Slidertext = svg.append("text")
 			.attr("x", x1)
 			.attr("y", y + 30)
+			.style("text-anchor", "middle")
 			.text(chosenDate);
 
 			updateDate(chosenDate)
@@ -279,6 +304,7 @@
 
 			function dragstarted() {
 				d3.select(this).raise().classed("active", true);
+				d3.select(this).style("stroke", "white");
 			};
 
 
@@ -288,6 +314,8 @@
 				showRoutes();
 				animatePlanes();
 				showScatter(1);
+
+				d3.select(this).style("stroke", "gray");
 			};
 
 
@@ -318,7 +346,7 @@
 				var scaleX = d3.scaleLinear().domain([1, 31]).range([x1, x2]);
 
 				var extentY = d3.extent(sumDelay, function(d) { return +d.SumDC; });
-				var scaleY = d3.scaleLinear().domain(extentY).range([y - padding , y -padding - height]);
+				var scaleY = d3.scaleLinear().domain(extentY).range([y - padding , y - padding - height]);
 
 				var line = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
@@ -336,6 +364,11 @@
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
 				.attr("d", line);
+				//
+				// g.append("text")
+				// .attr("x", x1 - 5 * padding)
+				// .attr("y",y)
+				// .text("Sum of Cancelled & Delays");
 
 			};
 
@@ -422,7 +455,7 @@
 						tempDelayed = routes_set[link][date][delayed];
 
 						if(Number(tempDelayed.delayed) > 0){
-							delayedFlights.push([link, tempDelayed.carrier, tempDelayed.departureTime, tempDelayed.delayed])
+							delayedFlights.push([link, tempDelayed.carrier, tempDelayed.departureTime, tempDelayed.delayed, +tempDelayed.rScheduled, tempDelayed.flightNumber, tempDelayed.delayType, +tempDelayed.dist])
 						}else if (tempDelayed.cancelled == 1){
 							cancelledFlights.push([link, tempDelayed.carrier])
 						};
@@ -503,7 +536,7 @@
 
 		function printFlights(tempDelayed){
 
-			d3.select("#flightSvg").selectAll("text")  
+			d3.select("#flightSvg").selectAll("text")
 			.data(tempDelayed)
 			.enter()
 			.append("text")
@@ -518,17 +551,16 @@
 			.attr("alignment-baseline","central")
 			.text(function(d){
 
-				var hours = String(d[2]).split('.')[0]
-				var minutes = String(d[2]).split('.')[1].slice(0,2)
+				var hours = d[2].substr(0,1);
+				var minutes = d[2].substr(-2,2);
 
-				if(minutes.length == 1){
-					minutes = minutes + "0";
+				if(d[2].length == 4){
+					hours = d[2].substr(0,2);
 				}
 
-				if(String(d[2]).split('.')[1].slice(0,2))
-				return "Carrier - " + d[1] + "\u00A0\u00A0\u00A0" + 
-				" Departure Time - " + hours + ":" + minutes + "\u00A0\u00A0\u00A0" + 
-				" Delayed Min - " + d[3]; 
+				return "Carrier - " + d[1] + "\u00A0\u00A0\u00A0" +
+				" Departure Time - " + hours + ":" + minutes + "\u00A0\u00A0\u00A0" +
+				" Delayed Min - " + d[3];
 			});
 		};
 
@@ -582,7 +614,7 @@
 				var sourceXY = projection( sourceLngLat ),
 				targetXY = projection( targetLngLat );
 
-				if (!targetXY) console.log(d, targetLngLat, targetXY)
+				if (!targetXY) {debugger; console.log(d, targetLngLat, targetXY)}
 					var sourceX = sourceXY[0],
 				sourceY = sourceXY[1];
 
@@ -611,7 +643,7 @@
 			var x2 = 900;
 			var cancelledHeight = 20;
 			var yBase = 500;
-			var yHeight = 450;
+			var yHeight = 420;
 
 			var yExtent = d3.extent(delayedFlights, function(d) {return +d[3];});
 			var avgY = d3.mean(delayedFlights, function(d) {return +d[3];});
@@ -636,8 +668,10 @@
 			.attr("opacity", "0.6")
 			.style("fill", function(d) {return colorScale(d[1]);});
 
-			changeXAxis(1, x1, x2, yBase, carriers);
 
+			changeXAxis(0, x1, x2, yBase, carriers);
+
+			if (avgY)
 			svg.append("line")
 			.attr("x1", x1)
 			.attr("x2", x2)
@@ -668,13 +702,13 @@
 			// buttons for scatter plot
 			var btnWidth = 200;
 			var btnHeight = 30;
-			var btnPadding = 5;
-			var btnx1 = 250;
+			var btnPadding = 10;
+			var btnx1 = 100;
 			var btny1 = 0;
 
-			// var labels = ["Carrier", "Scheduled departure ", "distance"]
+			var labels = ["Carrier", "Scheduled Departure ", "Distance", "Delay Type"];
 
-			var labels = ["Carrier", "Scheduled Departure"]
+			// var labels = ["Carrier", "Scheduled Departure"]
 
 			var btns = svg.append("g").attr("class","allBtns");
 
@@ -683,10 +717,10 @@
 			.append("g")
 			.attr("class", "btn")
 			.style("cursor", "cell")
-			.on("click", function(d, i){changeXAxis((i + 1), x1, x2, yBase, carriers);});
+			.on("click", function(d, i){changeXAxis(i, x1, x2, yBase, carriers);});
 
 			btn.append("rect")
-			.attr("x", function(d, i) {return (btnx1 + (btnWidth +btnPadding+80) * i); })
+			.attr("x", function(d, i) {return (btnx1 + (btnWidth +btnPadding) * i); })
 			.attr("y", btny1)
 			.attr("width", btnWidth)
 			.attr("height", btnHeight)
@@ -696,62 +730,67 @@
 			.style("fill", "white");
 
 			btn.append("text")
-			.attr("x", function(d, i) {return (btnx1 +(btnWidth + btnPadding + 80) * i + btnWidth/2)})
+			.attr("x", function(d, i) {return (btnx1 +(btnWidth + btnPadding) * i + btnWidth/2)})
 			.attr("y", btny1 + btnPadding + btnHeight/2)
 			.attr("text-anchor", "middle")
 			.attr("alignment-baseline", "center")
 			.text(function(d) {return d;})
 			.style("fill", "black");
-		}
 
-		function turnGray(){
-			d3.select(this).style("fill", "gray");
-		}
-		function turnWhite(){
-			d3.select(this).style("fill", "white")
 		}
 
 
 		function changeXAxis(newFeature, x1, x2, yBase, carriers){
-
 			var svg = d3.select("#scatterPlot");
-
 			var points = d3.selectAll("circle.flightPoints");
-			if(newFeature == 1){
-				var xScale = d3.scalePoint().domain(carriers).range([x1, x2]);
+
+			svg.selectAll("text.xLabel").remove();
+			var labels = ["Carrier", "Scheduled Departure ", "Distance", "Delay Type"];
+			svg.append("text").attr("class", "xLabel").attr("x", (x1+x2)/2).attr("y", yBase + 40).style("font-size", 20).text(labels[newFeature]);
+
+			switch(newFeature){
+				case 0:
+					var xScale = d3.scalePoint().domain(carriers).range([x1, x2]);
+					newFeature = 1;
+					break;
+				case 1:
+					var xExtent = [0, 24];
+					var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
+					newFeature = 4;
+					break;
+				case 2:
+					var xExtent = d3.extent(delayedFlights, function(d){return +d[7];});
+					var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
+					newFeature = 7;
+					break;
+				case 3:
+				  var DelayType = ["AIRLINE DELAY", "SECURITY DELAY", "LATE AIRCRAFT DELAY", "AIR SYSTEM DELAY", "WEATHER DELAY"];
+					var xScale = d3.scalePoint().domain(DelayType).range([x1, x2]);
+					newFeature = 6;
+					break;
 			}
-			else{
-				var xExtent = [0, 24];
-				var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
-			}
+
 			var xAxis = d3.axisBottom(xScale);
 
 			svg.select("#xAxis").remove();
 			svg.append("g").attr("id", "xAxis").attr("transform", "translate(0, " + yBase + ")").call(xAxis);
-			var labels = ["Carrier", "Scheduled Departure"];
-			svg.selectAll("text.xLabel").remove();
-			svg.append("text").attr("class", "xLabel").attr("x", (x1+x2)/2).attr("y", yBase + 40).style("font-size", 20).text(labels[newFeature - 1]);
-			points.transition()
+
+
+			points.on("mouseenter", function(d){
+				var tooltip = d3.select("#scatterTooltip");
+				tooltip.style("opacity", 0.7);
+				tooltip.html(d[1] + d[5] + "</br>" + d[0])
+				.style("left", (d3.event.pageX) + "px")
+        .style("top", (d3.event.pageY - 28) + "px");
+			})
+			.on("mouseleave", function(d){ d3.select("#scatterTooltip").style("opacity", 0);})
+			.transition()
 			.duration(500)
 			.attr("cx", function(d) {return xScale(d[newFeature]);})
-		}
-
-		// function showBar(){
-		// 	var svg = d3.select("#barPlot");
-		// 	var carriers = [];
-		// 	var avgDelayByCarrier = [];
-		// 	delayedFlights.forEach(function(d){
-		// 		if(!(carriers.includes(d[1]))){carriers.push(d[1]);}
-		// 		if(!(avgDelayByCarrier.some(function(d) {return d.carrier == d[1]}))){
-		// 			avgDelayByCarrier.push({"carrier": d[1], "count": 1, "sumAIR_SYSTEM_DELAY": d[sumAIR_SYSTEM_DELAY]});
-		// 		}
-		// 	})
-		//
-		// }
-
-		function changeCarrier(){
 
 		}
+
+
 
 	</script>
 
