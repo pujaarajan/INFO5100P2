@@ -348,22 +348,52 @@
 				var extentY = d3.extent(sumDelay, function(d) { return +d.SumDC; });
 				var scaleY = d3.scaleLinear().domain(extentY).range([y - padding , y - padding - height]);
 
-				var line = d3.line()
+				//var line = d3.line()
+				//.x(function(d) { return scaleX(+d.Day); })
+				//.y(function(d) { return scaleY(+d.SumDC); });
+
+				var line2 = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
-				.y(function(d) { return scaleY(+d.SumDC); });
+				.y(function(d) { return scaleY(+d.Delay); });
+
+				var line3 = d3.line()
+				.x(function(d) { return scaleX(+d.Day); })
+				.y(function(d) { return scaleY(+d.Cancel); });
+
 				var svg = d3.select("#map");
 
 				var g = svg.append("g");
+
+				//g.append("path")
+				//.datum(sumDelay)
+				//.attr("class", "delayLine")
+				//.attr("fill", "none")
+				//.attr("stroke", "purple")
+				//.attr("stroke-linejoin", "round")
+				//.attr("stroke-linecap", "round")
+				//.attr("stroke-width", 1.5)
+				//.attr("d", line);
 
 				g.append("path")
 				.datum(sumDelay)
 				.attr("class", "delayLine")
 				.attr("fill", "none")
-				.attr("stroke", "steelblue")
+				.attr("stroke", "blue")
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
-				.attr("d", line);
+				.attr("d", line2);
+
+				g.append("path")
+				.datum(sumDelay)
+				.attr("class", "delayLine")
+				.attr("fill", "none")
+				.attr("stroke", "red")
+				.attr("stroke-linejoin", "round")
+				.attr("stroke-linecap", "round")
+				.attr("stroke-width", 1.5)
+				.attr("d", line3);
+
 				//
 				// g.append("text")
 				// .attr("x", x1 - 5 * padding)
