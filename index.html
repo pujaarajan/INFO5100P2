@@ -16,7 +16,7 @@
 			fill: none;
 		}
 		body {
-			background-color: white;
+			background-color: #2b3638;
 		}
 
 		.arcs:hover {
@@ -110,6 +110,10 @@
 			color: indianred;
 		}
 
+		text {
+			fill: white;
+		}
+
 		#scatterTooltip {
 		  position: absolute;
 		  text-align: center;
@@ -123,6 +127,14 @@
 		  pointer-events: none;
 		}
 
+		.xAxis path{
+			stroke: white;
+		}
+
+		.yAxis path{
+			stroke: white;
+		}
+
 
 	</style>
 
@@ -130,19 +142,16 @@
 
 <body>
 
-	<h1 id="title"> January 2015 <br> FLight Delays and Cancellations </h1>
-	<br>
-	<h2> What causes flight delays and cancellations? </h2>
+	<h1 id="title"> Delayed Flights & Weather </h1>
 
-	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.  
-	</p>
-
-	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines.
-	</p>
+	<h3 id="routeInfo"> Select A Flight </h3>
 
 	<svg id="map" width="1000" height="800"></svg>
 	<canvas id="weather" width="100" height="100"></canvas>
 	<h3 id="date">JAN 1 2015</h3>
+	<h3> What flights delayed longer on this day? <br />
+		Hover over the points for detailed information. <br />
+		Click to see delay time by: </h3>
 	<svg id="scatterPlot" width="1000" height="600"></svg>
 
 	<script>
@@ -252,9 +261,9 @@
 			var paths = svg.selectAll("path.state").data(states.features);
 			paths.enter().append("path").attr("class", "state")
 			.merge(paths)
-			.style("fill", "#FFEBEE")
+			.style("fill", "#4d6059")
 			.style("fill-opacity", 1)
-			.attr("stroke", "#ccc")
+			.attr("stroke", "#2b3638")
 			.attr("stroke-width", 1)
 			.attr("stroke-opacity", 0.7)
 			.attr("d", function (state) {
@@ -357,11 +366,10 @@
 				var line = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
 				.y(function(d) { return scaleY(+d.SumDC); });
-
 				var line3 = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
-				.y(function(d) { return scaleY(+d.Cancel); });
-
+				.y(function(d) { return scaleY(+d.Delay); });
+				
 				var svg = d3.select("#map");
 
 				var g = svg.append("g");
@@ -386,11 +394,33 @@
 				.attr("stroke-width", 1.5)
 				.attr("d", line3);
 
-				//
-				// g.append("text")
-				// .attr("x", x1 - 5 * padding)
-				// .attr("y",y)
-				// .text("Sum of Cancelled & Delays");
+				g.append("rect")
+				.attr("x", x2 + 20)
+				.attr("y", 700)
+				.attr("width", 150)
+				.attr("height", 50)
+				.attr("fill", "none")
+				.attr("stroke", "gray");
+
+				g.append("line")
+				.attr("x1", x2 + 5)
+				.attr("x2", x2 + 20)
+				.attr("y1", 720)
+				.attr("y2", 720)
+				.attr("stroke", "purple")
+				.attr("stroke-wdith", 5);
+
+				var textBoxD = svg.append("text")
+				.attr("class", "dInfo")
+				.attr("x", x2 + 20)
+				.attr("y", 720)
+				.text("Delayed#:");
+
+				var textBoxT = svg.append("text")
+				.attr("class", "tInfo")
+				.attr("x", x2 + 20)
+				.attr("y", 740)
+				.text("Cancelled#:");
 
 			};
 
@@ -486,7 +516,7 @@
 					var temp = routes_set[link][date][Object.keys(routes_set[link][date])[0]]
 					var oLocation = [Number(temp.olong) , Number(temp.olat)]
 					var dLocation = [Number(temp.dlong) , Number(temp.dlat)]
-					var routeInfo = [link,oLocation, dLocation,Object.keys(routes_set[link]).length]
+					var routeInfo = [link,oLocation, dLocation,routes_set[link][chosenDate]]
 
 					chosenDateFlights.push(routeInfo);
 				};
@@ -671,8 +701,8 @@
 			var avgY = d3.mean(delayedFlights, function(d) {return +d[3];});
 			var yScale = d3.scaleLinear().domain(yExtent).range([yBase, yBase - yHeight]);
 			var yAxis = d3.axisLeft(yScale);
-			svg.append("g").attr("transform", "translate(" + x1 +", 0)").call(yAxis);
-			svg.append("text").attr("x", x1 - 40).attr("y", yBase/3).style("font-size", 20).style("writing-mode","tb-rl").text("Delay Time (min)");
+			svg.append("g").attr("class", "yAxis").attr("transform", "translate(" + x1 +", 0)").call(yAxis);
+			svg.append("text").attr("x", x1 - 40).attr("y", yBase/3).style("font-size", 20).style("writing-mode","vertical-rl").text("Delay Time (min)");
 
 			var carriers = [];
 			delayedFlights.forEach(function(d){
@@ -794,8 +824,10 @@
 
 			var xAxis = d3.axisBottom(xScale);
 
-			svg.select("#xAxis").remove();
-			svg.append("g").attr("id", "xAxis").attr("transform", "translate(0, " + yBase + ")").call(xAxis);
+			svg.select(".xAxis").remove();
+			svg.append("g")
+			.attr("class", "xAxis")
+			.attr("transform", "translate(0, " + yBase + ")").call(xAxis);
 
 
 			points.on("mouseenter", function(d){
