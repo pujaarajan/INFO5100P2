@@ -146,7 +146,7 @@
 	<br>
 	<h2> What causes flight delays and cancellations? </h2>
 
-	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.  
+	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.
 	</p>
 
 	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines. However, this is not always the case. More often than not, flight delays and cancellations are not weather related. In this visualization, we show all the flight routes out of NYC that people flew on each day in Junuary 2015 and the weather on that day.
@@ -205,7 +205,7 @@
 		.defer(d3.json, "us.json")
 		.defer(d3.csv, "JanuaryData0418.csv")
 		.defer(d3.csv, "weather.csv")
-		.defer(d3.csv, "sumDelayCancel.csv")
+		.defer(d3.csv, "sumDC.csv")
 		.await(function (error, rawMap, rawFlights, rawWeather, rawSum) {
 
 			mapData = rawMap;
@@ -406,9 +406,9 @@
 				.attr("d", line3);
 
 				g.append("rect")
-				.attr("x", x2 + 20)
+				.attr("x", x2 + 2)
 				.attr("y", 700)
-				.attr("width", 150)
+				.attr("width", 165)
 				.attr("height", 50)
 				.attr("fill", "none")
 				.attr("stroke", "gray");
@@ -416,22 +416,30 @@
 				g.append("line")
 				.attr("x1", x2 + 5)
 				.attr("x2", x2 + 20)
-				.attr("y1", 720)
-				.attr("y2", 720)
+				.attr("y1", 715)
+				.attr("y2", 715)
 				.attr("stroke", "purple")
+				.attr("stroke-wdith", 5);
+
+				g.append("line")
+				.attr("x1", x2 + 5)
+				.attr("x2", x2 + 20)
+				.attr("y1", 735)
+				.attr("y2", 735)
+				.attr("stroke", "red")
 				.attr("stroke-wdith", 5);
 
 				var textBoxD = svg.append("text")
 				.attr("class", "dInfo")
 				.attr("x", x2 + 20)
 				.attr("y", 720)
-				.text("Delayed#:");
+				.text("Delayed#:72");
 
 				var textBoxT = svg.append("text")
 				.attr("class", "tInfo")
 				.attr("x", x2 + 20)
 				.attr("y", 740)
-				.text("Cancelled#:");
+				.text("Cancelled#:2");
 
 			};
 
@@ -534,6 +542,9 @@
 			};
 
 			d3.select("#date").html("JAN " + date + " 2015")
+			d3.select("text.tInfo").text("Cancelled#:" + sumDelay[chosenDate - 1].Cancel);
+			d3.select("text.dInfo").text("Delayed#:" + sumDelay[chosenDate - 1].Delay);
+
 			showWeather(date);
 		};
 
