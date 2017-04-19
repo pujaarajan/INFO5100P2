@@ -34,14 +34,17 @@
 			stroke-width: 2px;
 		}
 
+		#map {
+			float: left;
+		}
+
 		#flightSvg {
-			background: #2b8cbe;
-			padding: 20px;
+			background: #4eb3d3;
 		}
 
 		.flightRoute {
 			display: block;
-			font-size: 14px;
+			font-size: 12px;
 			color: white;
 		}
 
@@ -49,12 +52,20 @@
 			margin-bottom: 40px;
 		}
 
+		#informationDiv{
+			width: 30%;
+			height: 600px;
+			overflow-y: scroll;
+			display: inline-block;
+			margin-left: 10%;
+			overflow-x: hidden;
+		}
+
 		text {
 			font-family: Verdana;
 		}
 
 		svg	{
-			display: block;
 			margin: auto;
 		}
 
@@ -111,16 +122,21 @@
 		}
 
 		#scatterTooltip {
-		  position: absolute;
-		  text-align: center;
-		  width: 60px;
-		  height: 28px;
-		  padding: 2px;
-		  font: 12px sans-serif;
-		  background: #77a88b;
-		  border: 0px;
-		  border-radius: 1px;
-		  pointer-events: none;
+			position: absolute;
+			text-align: center;
+			width: 60px;
+			height: 28px;
+			padding: 2px;
+			font: 12px sans-serif;
+			background: #77a88b;
+			border: 0px;
+			border-radius: 1px;
+			pointer-events: none;
+		}
+
+		#date, #weather, #scatterplot {
+			clear:both;
+			display: block;
 		}
 
 
@@ -141,6 +157,7 @@
 	</p>
 
 	<svg id="map" width="1000" height="800"></svg>
+	<div id="informationDiv"></div>
 	<canvas id="weather" width="100" height="100"></canvas>
 	<h3 id="date">JAN 1 2015</h3>
 	<svg id="scatterPlot" width="1000" height="600"></svg>
@@ -149,7 +166,6 @@
 
 		var mapData;
 		var states;
-		// var flightData;
 		var weatherData;
 		var sumDelay;
 		var chosenDate;
@@ -185,11 +201,10 @@
 		.defer(d3.json, "us.json")
 		.defer(d3.csv, "JanuaryData0418.csv")
 		.defer(d3.csv, "weather.csv")
-		.defer(d3.csv, "sumDelayCancel.csv")
+		.defer(d3.csv, "sumDelayCancel1.csv")
 		.await(function (error, rawMap, rawFlights, rawWeather, rawSum) {
 
 			mapData = rawMap;
-			flightData = rawFlights;
 			weatherData = rawWeather;
 			states = topojson.feature(rawMap, rawMap.objects.states);
 			sumDelay = rawSum;
@@ -225,7 +240,7 @@
 					element.FLIGHT_NUMBER,
 					element.DELAY_TYPE,
 					element.DISTANCE
-				);
+					);
 
 				routes_set[element.ORIGIN_AIRPORT + "-" + element.DESTINATION_AIRPORT][element.DAY]["route"+i] = new_route;
 
@@ -422,7 +437,7 @@
 			.on("click", function(d) {
 				d3.select("#flightSvg").selectAll(".flightRoute").remove();
 				showDetails(d);
-				 document.getElementById("flightSvg").focus();
+				document.getElementById("flightSvg").focus();
 			})
 			.on("mouseover", function(d) {
 				d3.select(this).style("stroke", "black");
@@ -517,6 +532,7 @@
 
 			var counter = 0
 			var tempDelayed = [0];
+			var route = d[0].split("-")
 
 			for(var index in delayedFlights){
 				if(delayedFlights[index][0] == d[0]){
@@ -526,27 +542,29 @@
 			};
 
 			if(d3.select("#flightSvg").empty()){
-				d3.select("body").append("svg")
+
+				d3.select("#informationDiv").append("svg")
 				.attr("id", "flightSvg")
 				.attr("tabindex",-1)
-				.attr("width", 700)
-				.attr("height", "auto")
+				.attr("width", "100%")
+				.attr("height", "1500px")
 				.attr("padding", "10px")
 				.attr("overflow","visible")
+				.attr("display", "block")
 				.append("text")
-				.attr("x", 350)
+				.attr("x", 260)
 				.attr("y", 80)
 				.attr("text-anchor", "middle")
 				.attr("fill", "white")
 				.attr("font-size", "20px")
 				.attr("alignment-baseline","central")
-				.text("Origin - Destination : " + d[0] + "\u00A0\u00A0\u00A0\u00A0\u00A0" + " Delayed Flights : " + counter)
+				.text(route[0] + " to " + route[1] + "\u00A0\u00A0\u00A0" + "Delays " + counter)
 
 				printFlights(tempDelayed);
 
 			}else{
 				d3.select("#flightSvg").select("text")
-				.text("Origin - Destination : " + d[0] + "\u00A0\u00A0\u00A0\u00A0\u00A0" + " Delayed Flights : " + counter)
+				.text(route[0] + " to " + route[1] + "\u00A0\u00A0\u00A0" + "Delays " + counter)
 
 				printFlights(tempDelayed);
 			};
@@ -563,14 +581,13 @@
 			.enter()
 			.append("text")
 			.attr("class", "flightRoute")
-			.attr("x", 350)
+			.attr("x", 80)
 			.attr("y", function(d,i){
 				return 100 + (50*i);
 			})
-			.attr("text-anchor", "middle")
+			.attr("text-anchor", "start")
 			.attr("fill", "white")
 			.attr("text-decoration", "overline")
-			.attr("alignment-baseline","central")
 			.text(function(d){
 
 				var hours = d[2].substr(0,1);
@@ -637,7 +654,7 @@
 				targetXY = projection( targetLngLat );
 
 				if (!targetXY) {debugger; console.log(d, targetLngLat, targetXY)}
-					var sourceX = sourceXY[0],
+				var sourceX = sourceXY[0],
 				sourceY = sourceXY[1];
 
 				var targetX = targetXY[0],
@@ -694,7 +711,7 @@
 			changeXAxis(0, x1, x2, yBase, carriers);
 
 			if (avgY)
-			svg.append("line")
+				svg.append("line")
 			.attr("x1", x1)
 			.attr("x2", x2)
 			.attr("y1", yScale(avgY))
@@ -772,24 +789,24 @@
 
 			switch(newFeature){
 				case 0:
-					var xScale = d3.scalePoint().domain(carriers).range([x1, x2]);
-					newFeature = 1;
-					break;
+				var xScale = d3.scalePoint().domain(carriers).range([x1, x2]);
+				newFeature = 1;
+				break;
 				case 1:
-					var xExtent = [0, 24];
-					var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
-					newFeature = 4;
-					break;
+				var xExtent = [0, 24];
+				var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
+				newFeature = 4;
+				break;
 				case 2:
-					var xExtent = d3.extent(delayedFlights, function(d){return +d[7];});
-					var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
-					newFeature = 7;
-					break;
+				var xExtent = d3.extent(delayedFlights, function(d){return +d[7];});
+				var xScale = d3.scaleLinear().domain(xExtent).range([x1,x2]);
+				newFeature = 7;
+				break;
 				case 3:
-				  var DelayType = ["AIRLINE DELAY", "SECURITY DELAY", "LATE AIRCRAFT DELAY", "AIR SYSTEM DELAY", "WEATHER DELAY"];
-					var xScale = d3.scalePoint().domain(DelayType).range([x1, x2]);
-					newFeature = 6;
-					break;
+				var DelayType = ["AIRLINE DELAY", "SECURITY DELAY", "LATE AIRCRAFT DELAY", "AIR SYSTEM DELAY", "WEATHER DELAY"];
+				var xScale = d3.scalePoint().domain(DelayType).range([x1, x2]);
+				newFeature = 6;
+				break;
 			}
 
 			var xAxis = d3.axisBottom(xScale);
@@ -803,7 +820,7 @@
 				tooltip.style("opacity", 0.7);
 				tooltip.html(d[1] + d[5] + "</br>" + d[0])
 				.style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY - 28) + "px");
+				.style("top", (d3.event.pageY - 28) + "px");
 			})
 			.on("mouseleave", function(d){ d3.select("#scatterTooltip").style("opacity", 0);})
 			.transition()
