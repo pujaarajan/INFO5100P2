@@ -29,8 +29,8 @@
 		}
 
 		.plane {
-			fill: #D81159;
-			stroke: #8F2D56;
+			fill: #3F2725;
+			stroke: #3F2725;
 			stroke-width: 2px;
 		}
 
@@ -301,7 +301,7 @@
 			.attr("x2", x2)
 			.attr("y1", y)
 			.attr("y2", y)
-			.style("stroke", "#084081")
+			.style("stroke", "white")
 			.style("stroke-opacity", 0.7)
 			.style("stroke-linecap", "round")
 			.style("stroke-width", 5);
@@ -311,7 +311,7 @@
 			.attr("id", "slider")
 			.attr("cy", y)
 			.attr("cx", x1)
-			.style("fill", "#084081")
+			.style("fill", "black")
 			.style("fill-opacity", 1)
 			.call(d3.drag()
 				.on("start", dragstarted)
@@ -376,7 +376,7 @@
 
 				var line = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
-				.y(function(d) { return scaleY(+d.SumDC); });
+				.y(function(d) { return scaleY(+d.Cancel); });
 				var line3 = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
 				.y(function(d) { return scaleY(+d.Delay); });
@@ -389,7 +389,7 @@
 				.datum(sumDelay)
 				.attr("class", "delayLine")
 				.attr("fill", "none")
-				.attr("stroke", "purple")
+				.attr("stroke", "#7B947B")
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
@@ -399,7 +399,7 @@
 				.datum(sumDelay)
 				.attr("class", "delayLine")
 				.attr("fill", "none")
-				.attr("stroke", "red")
+				.attr("stroke", "#ffc3a0")
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
@@ -418,7 +418,7 @@
 				.attr("x2", x2 + 20)
 				.attr("y1", 715)
 				.attr("y2", 715)
-				.attr("stroke", "purple")
+				.attr("stroke", "#7B947B")
 				.attr("stroke-wdith", 5);
 
 				g.append("line")
@@ -426,7 +426,7 @@
 				.attr("x2", x2 + 20)
 				.attr("y1", 735)
 				.attr("y2", 735)
-				.attr("stroke", "red")
+				.attr("stroke", "#7B947B")
 				.attr("stroke-wdith", 5);
 
 				var textBoxD = svg.append("text")
