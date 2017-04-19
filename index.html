@@ -16,7 +16,7 @@
 			fill: none;
 		}
 		body {
-			background-color: white;
+			background-color: #2b3638;
 		}
 
 		.arcs:hover {
@@ -29,8 +29,8 @@
 		}
 
 		.plane {
-			fill: #D81159;
-			stroke: #8F2D56;
+			fill: #3F2725;
+			stroke: #3F2725;
 			stroke-width: 2px;
 		}
 
@@ -121,6 +121,10 @@
 			color: indianred;
 		}
 
+		text {
+			fill: white;
+		}
+
 		#scatterTooltip {
 			position: absolute;
 			text-align: center;
@@ -139,6 +143,14 @@
 			display: block;
 		}
 
+		.xAxis path{
+			stroke: white;
+		}
+
+		.yAxis path{
+			stroke: white;
+		}
+
 
 	</style>
 
@@ -150,16 +162,24 @@
 	<br>
 	<h2> What causes flight delays and cancellations? </h2>
 
-	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.  
+	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.
 	</p>
 
-	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines.
+	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines. However, this is not always the case. More often than not, flight delays and cancellations are not weather related. In this visualization, we show all the flight routes out of NYC that people flew on each day in Junuary 2015 and the weather on that day.
 	</p>
+
+	<h2> Click on a flight path below to learn more about the delays and cancellations on New Years 2015. </h2>
+
+	<h2> Or use the slider under the map to select a different date. </h2>
+
 
 	<svg id="map" width="1000" height="800"></svg>
 	<div id="informationDiv"></div>
 	<canvas id="weather" width="100" height="100"></canvas>
 	<h3 id="date">JAN 1 2015</h3>
+	<h3> What flights delayed longer on this day? <br />
+		Hover over the points for detailed information. <br />
+		Click to see delay time by: </h3>
 	<svg id="scatterPlot" width="1000" height="600"></svg>
 
 	<script>
@@ -201,7 +221,7 @@
 		.defer(d3.json, "us.json")
 		.defer(d3.csv, "JanuaryData0418.csv")
 		.defer(d3.csv, "weather.csv")
-		.defer(d3.csv, "sumDelayCancel1.csv")
+		.defer(d3.csv, "sumDC.csv")
 		.await(function (error, rawMap, rawFlights, rawWeather, rawSum) {
 
 			mapData = rawMap;
@@ -267,9 +287,9 @@
 			var paths = svg.selectAll("path.state").data(states.features);
 			paths.enter().append("path").attr("class", "state")
 			.merge(paths)
-			.style("fill", "#FFEBEE")
+			.style("fill", "#4d6059")
 			.style("fill-opacity", 1)
-			.attr("stroke", "#ccc")
+			.attr("stroke", "#2b3638")
 			.attr("stroke-width", 1)
 			.attr("stroke-opacity", 0.7)
 			.attr("d", function (state) {
@@ -296,7 +316,7 @@
 			.attr("x2", x2)
 			.attr("y1", y)
 			.attr("y2", y)
-			.style("stroke", "#084081")
+			.style("stroke", "white")
 			.style("stroke-opacity", 0.7)
 			.style("stroke-linecap", "round")
 			.style("stroke-width", 5);
@@ -306,7 +326,7 @@
 			.attr("id", "slider")
 			.attr("cy", y)
 			.attr("cx", x1)
-			.style("fill", "#084081")
+			.style("fill", "black")
 			.style("fill-opacity", 1)
 			.call(d3.drag()
 				.on("start", dragstarted)
@@ -371,11 +391,10 @@
 
 				var line = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
-				.y(function(d) { return scaleY(+d.SumDC); });
-
+				.y(function(d) { return scaleY(+d.Cancel); });
 				var line3 = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
-				.y(function(d) { return scaleY(+d.Cancel); });
+				.y(function(d) { return scaleY(+d.Delay); });
 
 				var svg = d3.select("#map");
 
@@ -385,7 +404,7 @@
 				.datum(sumDelay)
 				.attr("class", "delayLine")
 				.attr("fill", "none")
-				.attr("stroke", "purple")
+				.attr("stroke", "#7B947B")
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
@@ -395,17 +414,47 @@
 				.datum(sumDelay)
 				.attr("class", "delayLine")
 				.attr("fill", "none")
-				.attr("stroke", "red")
+				.attr("stroke", "#ffc3a0")
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
 				.attr("d", line3);
 
-				//
-				// g.append("text")
-				// .attr("x", x1 - 5 * padding)
-				// .attr("y",y)
-				// .text("Sum of Cancelled & Delays");
+				g.append("rect")
+				.attr("x", x2 + 2)
+				.attr("y", 700)
+				.attr("width", 165)
+				.attr("height", 50)
+				.attr("fill", "none")
+				.attr("stroke", "gray");
+
+				g.append("line")
+				.attr("x1", x2 + 5)
+				.attr("x2", x2 + 20)
+				.attr("y1", 715)
+				.attr("y2", 715)
+				.attr("stroke", "#7B947B")
+				.attr("stroke-wdith", 5);
+
+				g.append("line")
+				.attr("x1", x2 + 5)
+				.attr("x2", x2 + 20)
+				.attr("y1", 735)
+				.attr("y2", 735)
+				.attr("stroke", "#7B947B")
+				.attr("stroke-wdith", 5);
+
+				var textBoxD = svg.append("text")
+				.attr("class", "dInfo")
+				.attr("x", x2 + 20)
+				.attr("y", 720)
+				.text("Delayed#:72");
+
+				var textBoxT = svg.append("text")
+				.attr("class", "tInfo")
+				.attr("x", x2 + 20)
+				.attr("y", 740)
+				.text("Cancelled#:2");
 
 			};
 
@@ -501,13 +550,16 @@
 					var temp = routes_set[link][date][Object.keys(routes_set[link][date])[0]]
 					var oLocation = [Number(temp.olong) , Number(temp.olat)]
 					var dLocation = [Number(temp.dlong) , Number(temp.dlat)]
-					var routeInfo = [link,oLocation, dLocation,Object.keys(routes_set[link]).length]
+					var routeInfo = [link,oLocation, dLocation,routes_set[link][chosenDate]]
 
 					chosenDateFlights.push(routeInfo);
 				};
 			};
 
 			d3.select("#date").html("JAN " + date + " 2015")
+			d3.select("text.tInfo").text("Cancelled#:" + sumDelay[chosenDate - 1].Cancel);
+			d3.select("text.dInfo").text("Delayed#:" + sumDelay[chosenDate - 1].Delay);
+
 			showWeather(date);
 		};
 
@@ -688,8 +740,8 @@
 			var avgY = d3.mean(delayedFlights, function(d) {return +d[3];});
 			var yScale = d3.scaleLinear().domain(yExtent).range([yBase, yBase - yHeight]);
 			var yAxis = d3.axisLeft(yScale);
-			svg.append("g").attr("transform", "translate(" + x1 +", 0)").call(yAxis);
-			svg.append("text").attr("x", x1 - 40).attr("y", yBase/3).style("font-size", 20).style("writing-mode","tb-rl").text("Delay Time (min)");
+			svg.append("g").attr("class", "yAxis").attr("transform", "translate(" + x1 +", 0)").call(yAxis);
+			svg.append("text").attr("x", x1 - 40).attr("y", yBase/3).style("font-size", 20).style("writing-mode","vertical-rl").text("Delay Time (min)");
 
 			var carriers = [];
 			delayedFlights.forEach(function(d){
@@ -811,8 +863,10 @@
 
 			var xAxis = d3.axisBottom(xScale);
 
-			svg.select("#xAxis").remove();
-			svg.append("g").attr("id", "xAxis").attr("transform", "translate(0, " + yBase + ")").call(xAxis);
+			svg.select(".xAxis").remove();
+			svg.append("g")
+			.attr("class", "xAxis")
+			.attr("transform", "translate(0, " + yBase + ")").call(xAxis);
 
 
 			points.on("mouseenter", function(d){
@@ -832,6 +886,9 @@
 
 
 	</script>
+
+<p> The scatterplot above shows how different airline carriers compare in their delay times. Each point represents a specific flight and if you hover over it, then you can see the flight number and its origin and destination airports. Click on the different options above the scatterplot to learn more about how different variables correlate with delay time for each carrier. </p>
+
 
 </body>
 
