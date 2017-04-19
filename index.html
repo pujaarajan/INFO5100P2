@@ -130,9 +130,15 @@
 
 <body>
 
-	<h1 id="title"> Delayed Flights & Weather </h1>
+	<h1 id="title"> January 2015 <br> FLight Delays and Cancellations </h1>
+	<br>
+	<h2> What causes flight delays and cancellations? </h2>
 
-	<h3 id="routeInfo"> Select A Flight </h3>
+	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.  
+	</p>
+
+	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines.
+	</p>
 
 	<svg id="map" width="1000" height="800"></svg>
 	<canvas id="weather" width="100" height="100"></canvas>
@@ -348,13 +354,9 @@
 				var extentY = d3.extent(sumDelay, function(d) { return +d.SumDC; });
 				var scaleY = d3.scaleLinear().domain(extentY).range([y - padding , y - padding - height]);
 
-				//var line = d3.line()
-				//.x(function(d) { return scaleX(+d.Day); })
-				//.y(function(d) { return scaleY(+d.SumDC); });
-
-				var line2 = d3.line()
+				var line = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
-				.y(function(d) { return scaleY(+d.Delay); });
+				.y(function(d) { return scaleY(+d.SumDC); });
 
 				var line3 = d3.line()
 				.x(function(d) { return scaleX(+d.Day); })
@@ -364,25 +366,15 @@
 
 				var g = svg.append("g");
 
-				//g.append("path")
-				//.datum(sumDelay)
-				//.attr("class", "delayLine")
-				//.attr("fill", "none")
-				//.attr("stroke", "purple")
-				//.attr("stroke-linejoin", "round")
-				//.attr("stroke-linecap", "round")
-				//.attr("stroke-width", 1.5)
-				//.attr("d", line);
-
 				g.append("path")
 				.datum(sumDelay)
 				.attr("class", "delayLine")
 				.attr("fill", "none")
-				.attr("stroke", "blue")
+				.attr("stroke", "purple")
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.attr("stroke-width", 1.5)
-				.attr("d", line2);
+				.attr("d", line);
 
 				g.append("path")
 				.datum(sumDelay)
