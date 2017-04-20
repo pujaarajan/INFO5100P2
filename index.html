@@ -9,14 +9,13 @@
 
 	<style>
 
-
 		.arcs {
-			/*			stroke: #FFBC42;*/
 			stroke-width: 5px;
 			fill: none;
 		}
 		body {
 			background-color: #2b3638;
+			color: white;
 		}
 
 		.arcs:hover {
@@ -39,7 +38,7 @@
 		}
 
 		#flightSvg {
-			background: #4eb3d3;
+			background: #2b3638;
 		}
 
 		.flightRoute {
@@ -59,6 +58,7 @@
 			display: inline-block;
 			margin-left: 10%;
 			overflow-x: hidden;
+			background-color: #2b3638;
 		}
 
 		text {
@@ -81,10 +81,14 @@
 		}
 
 		h1 {
-			font-size: 3em;
+			font-size: 2em;
 			line-height: 1em;
 			text-align: center;
 			margin: 0.5em 0;
+		}
+
+		h2 {
+			font-size: 1.5em;
 		}
 
 		h3 {
@@ -94,7 +98,7 @@
 		}
 
 		p {
-			margin: 1.5em 0;
+			margin: 1em 0;
 		}
 
 		figure {
@@ -158,14 +162,14 @@
 
 <body>
 
-	<h1 id="title"> January 2015 <br> FLight Delays and Cancellations </h1>
+	<h1 id="title"> January 2015 <br> Flight Delays and Cancellations </h1>
 	<br>
 	<h2> What causes flight delays and cancellations? </h2>
 
-	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Cananda, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussets, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.
+	<p> On January 26th, 2015, the January 2015 North American blizzard, nicknamed Blizzard of 2015 and Winter Storm Juno, affected Canada, Central and Eastern United States, and even Southern Greenland and Western Europe. The snow disrupted transportation in Connecticut, New Jersey, Massachussetts, Rhode Island, and especially New York City. Because of the weather emergency, thousands of flights were delayed or cancelled.
 	</p>
 
-	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines. However, this is not always the case. More often than not, flight delays and cancellations are not weather related. In this visualization, we show all the flight routes out of NYC that people flew on each day in Junuary 2015 and the weather on that day.
+	<p> In this case, the flight delays and cancellations are uncontrollable by the airlines. However, this is not always the case. More often than not, flight delays and cancellations are not weather related. In this visualization, we show all the flight routes out of NYC that people flew on each day in January 2015 and the weather on that day.
 	</p>
 
 	<h2> Click on a flight path below to learn more about the delays and cancellations on New Years 2015. </h2>
@@ -177,6 +181,7 @@
 	<div id="informationDiv"></div>
 	<canvas id="weather" width="100" height="100"></canvas>
 	<h3 id="date">JAN 1 2015</h3>
+
 	<h3> What flights delayed longer on this day? <br />
 		Hover over the points for detailed information. <br />
 		Click to see delay time by: </h3>
@@ -195,7 +200,7 @@
 		var routes_set = {};
 		var i = 0;
 		var arcs;
-		var skycons = new Skycons({"color": "#2b8cbe"});
+		var skycons = new Skycons({"color": "white"});
 
 		class route {
 			constructor(day, olong, olat, dlong, dlat, origin, destination, carrier, departureTime, cancelled, delayed, rSchedule, flightNumber, delayType, dist) {
@@ -486,7 +491,6 @@
 			.on("click", function(d) {
 				d3.select("#flightSvg").selectAll(".flightRoute").remove();
 				showDetails(d);
-				document.getElementById("flightSvg").focus();
 			})
 			.on("mouseover", function(d) {
 				d3.select(this).style("stroke", "black");
@@ -705,7 +709,7 @@
 				var sourceXY = projection( sourceLngLat ),
 				targetXY = projection( targetLngLat );
 
-				if (!targetXY) {debugger; console.log(d, targetLngLat, targetXY)}
+				if (!targetXY) { console.log(d, targetLngLat, targetXY)}
 				var sourceX = sourceXY[0],
 				sourceY = sourceXY[1];
 
