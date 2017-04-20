@@ -129,7 +129,7 @@
 	  	showScatter(1);
 	  });
 
-
+	//draw the us map using the json
 	  function showMap() {
 
 	  	var svg = d3.select("#map");
@@ -184,7 +184,7 @@
 			.style("opacity", 0.6);
 		};
 
-
+		// create slider to adjust day in January
 		function showSlider() {
 
 			var x1 = 150;
@@ -233,12 +233,13 @@
 
 			showSum();
 
+			//Helper function for the slider which moves the button with the slider is dragged
 			function dragstarted() {
 				d3.select(this).raise().classed("active", true);
 				d3.select(this).style("stroke", "white");
 			};
 
-
+			//Helper function for the slider which stops the slider when dragging stops
 			function dragended() {
 				d3.select(this).classed("active", false);
 				updateDate(chosenDate);
@@ -249,7 +250,7 @@
 				d3.select(this).style("stroke", "gray");
 			};
 
-
+			//Helper function for slider which keeps track if it is in the dragged state
 			function dragged() {
 				chosenDate = findNearstDate(d3.event.x);
 				var loc = x1 + (chosenDate - 1) *(x2 - x1)/30;
@@ -257,7 +258,7 @@
 				Slidertext.attr("x", loc).text(chosenDate);
 			};
 
-
+			//Helper function to find the nearest date on the slider
 			function findNearstDate(currentX) {
 				var length = (x2 - x1)/30;
 				var i = 0;
@@ -269,7 +270,7 @@
 				return i;
 			};
 
-
+			//Shows the total number of delayed and cancelled flights above the slider
 			function showSum(){
 
 				var height = 60;
@@ -349,7 +350,7 @@
 
 		};
 
-
+		//Shows all the flight routes on a particular day on the map
 		function showRoutes(){
 
 			var svg = d3.select("#map");
@@ -408,7 +409,7 @@
 
 		};
 
-
+		//Change the flight routes when you use the slider to update the date
 		function updateDate(date){
 
 			d3.select("#flightSvg").remove();
@@ -448,7 +449,7 @@
 			showWeather(date);
 		};
 
-
+		//Show the weather on a particular date by the slider
 		function showWeather(date){
 
 			if (dateWeather.get(date)['Rain'] == 1){
@@ -464,7 +465,7 @@
 			skycons.play();
 		};
 
-
+		//Show flight details to the right of the map
 		function showDetails(d){
 
 			var counter = 0
@@ -519,7 +520,7 @@
 
 		};
 
-
+		//Write the flights that are delayed on a particular day in the box to the right of the map
 		function printFlights(tempDelayed){
 
 			d3.select("#flightSvg").selectAll("text")
@@ -549,7 +550,7 @@
 			});
 		};
 
-
+		//Creates animated planes flying above the routes on a day
 		function animatePlanes(){
 
 			var svg = d3.select("#map");
@@ -598,7 +599,7 @@
 			});
 		};
 
-
+		//Converts lontitude and lattitude to an arc on which the flight path is drawn
 		function lngLatToArc(d, sourceLngLat, targetLngLat, bend){
 
 			bend = bend || 1;
@@ -627,7 +628,7 @@
 			};
 		};
 
-
+		//Create scatterplot showing more details about each flight route
 		function showScatter(xFeature){
 
 			var svg = d3.select("#scatterPlot");
@@ -754,7 +755,7 @@
 
 		}
 
-
+		//Gives users the option to change the x axis to plot different variables
 		function changeXAxis(newFeature, x1, x2, yBase, carriers){
 			var svg = d3.select("#scatterPlot");
 			var points = d3.selectAll("circle.flightPoints");
